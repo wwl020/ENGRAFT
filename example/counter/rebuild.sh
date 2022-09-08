@@ -1,0 +1,1 @@
+cd build && rm -rf * && cmake .. && make -j3 && cd .. && cp build/counter_* . 

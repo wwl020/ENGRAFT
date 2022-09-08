@@ -1,0 +1,70 @@
+enclave {
+    from "openenclave/edl/logging.edl" import *;
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+    include "sys/time.h"
+    include "time.h"
+    trusted {
+        //- sgxbutil/enclave.cpp
+        public void enclave_setup(int port, [user_check] void* ptr);
+        public void enclave_test();
+        public void enclave_test_shared_mem([user_check] void* ptr);
+        //- example/counter/server.cpp
+        public void start_counter_server(int port);
+        //- sgxbutil/ecall_helper.cpp
+        public void ecall_pthread_general(uint64_t task_id);
+        //- bthread/timer_thread.cpp
+        public void ecall_pthread_timer_thread([user_check] void* futex);
+    };
+
+    untrusted {
+        //- host/entry.cpp
+        void host_helloworld();
+        void ocall_exit(int val);
+        void ocall_swless_add() transition_using_threads;
+        void ocall_reg_add();
+
+        //- host/host_utils.cpp
+        void ocall_gettimeofday_nocopy() transition_using_threads;
+        void ocall_gettimeofday([out] struct timeval* time) transition_using_threads;
+        void ocall_gettimeofday_switch([out] struct timeval* time);
+        void ocall_free_data([user_check] void* ptr);
+        void ocall_fallocate(int fd, int offset, int byte_size);
+        
+        void ocall_create_counter([out] uint32_t* counter_id);
+        void ocall_start_auth_session(
+            [in, size=nonce_buf_size] void* nonce_buffer, int nonce_buf_size, 
+            [in, size=salt_buf_size] void* encrypted_salt_buffer, int salt_buf_size, 
+            [out, size=nonce_buf_size] void* nonce_tpm_buffer,
+            [out] uint32_t* session_handle);
+
+        void ocall_add_counter(uint32_t session_handle, uint32_t nv_handle,
+            [in, size=nonce_buf_size] void* nonce_buffer, int nonce_buf_size,
+            [in, size=hmac_size] uint8_t* hmac_in_buffer, int hmac_size,
+            [out, size=nonce_buf_size] uint8_t* nonce_tpm_buffer,
+            [out, size=hmac_size] uint8_t* hmac_out_buffer);
+
+        void ocall_read_counter(uint32_t session_handle, uint32_t nv_handle,
+            [in, size=nonce_buf_size] void* nonce_buffer, int nonce_buf_size,
+            [in, size=hmac_size] uint8_t* hmac_in_buffer, int hmac_size,
+            [out, size=nonce_buf_size] uint8_t* nonce_tpm_buffer,
+            [out, size=hmac_size] uint8_t* hmac_out_buffer, 
+            [out, size=read_data_size] void* read_data, int read_data_size);
+
+        void ocall_clock_gettime(int time_type, [out] struct timespec* time) transition_using_threads;
+        void ocall_get_logging_time([out] struct tm* local_time, [out] uint64_t* nano_sec) transition_using_threads;
+        void ocall_pthread_timer_thread([out] int *rc, [out] uint64_t *tid);
+        void ocall_pthread_general([out] int *rc, [out] uint64_t *tid, 
+                                   uint64_t task_id, int mode);
+        void ocall_join_pthread(uint64_t tid);
+        void ocall_futex_wait_private([user_check] void* addr1, int expected, 
+                [in] struct timespec* timeout, [out] int* ret, [out] int* errnum);
+        void ocall_futex_wake_private([user_check] void* addr1, 
+                int nwake, [out] int* ret, [out] int* errnum) transition_using_threads;
+        
+        //- host/host_event_dis.cpp
+        void ocall_create_host_event_dispatcher();
+
+
+    };
+};

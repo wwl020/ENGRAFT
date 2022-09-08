@@ -1,0 +1,13 @@
+syntax="proto2";
+
+package sgxbutil;
+
+message MonotonicCounter {
+    required uint32 index = 1;
+    required uint64 value = 2;
+};
+
+message CounterList {
+    repeated MonotonicCounter counters = 1;
+}
+

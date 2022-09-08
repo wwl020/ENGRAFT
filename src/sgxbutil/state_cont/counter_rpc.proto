@@ -1,0 +1,56 @@
+syntax="proto2";
+package sgxbutil;
+option cc_generic_services = true;
+
+message PreIncCounterReq {
+    required string id = 1;
+    required uint64 flag = 2;
+    required uint64 expected_value = 3;
+};
+
+message PreIncCounterResp {
+    required bool success = 1;
+}
+
+// The following three message types are used in state continuity service that
+// stores states instead of offering counter
+message StateContinuityResp {
+    required bool success = 1;
+}
+
+message VoteInfo {
+    required string voted_for = 1;
+    required int64 current_term = 2;
+    required uint64 vote_info_index = 3;
+    required string sender_id = 4;
+}
+
+message LogStoreInfo {
+    required bytes chained_hash = 1;
+    optional int64 first_log_index = 2;
+    optional int64 last_log_index = 3;
+    required uint64 log_store_info_index = 4;
+    required string sender_id = 5;
+}
+
+message StateStoreRequest {
+    required bool confirmation = 1;
+    optional VoteInfo vote_info = 2;
+    optional LogStoreInfo log_store_info = 3;
+    optional bool with_next_log_hash = 4;
+    optional LogStoreInfo next_log_store_info = 5;
+}
+
+message TestConnectRequest {
+    required bool non_sense = 1;
+}
+
+// Service for state continuity
+service StateContService {
+    rpc pre_inc_counter(PreIncCounterReq) returns (PreIncCounterResp);
+    rpc confirm_inc_counter(PreIncCounterReq) returns (PreIncCounterResp);
+
+    rpc store_states(StateStoreRequest) returns (StateContinuityResp);
+    // rpc retrieve_states(StateStoreRequest) returns (StateContinuityResp);
+    rpc test_connectable(TestConnectRequest) returns (StateContinuityResp);
+};
